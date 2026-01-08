@@ -46,23 +46,31 @@ type ListRes = {
 
 type CheckRes =
     | {
-    status: "verified";
-    domain: string;
-    fqdn: string;
-    token: string;
-    answers: string[];
-    verifiedAt: string;
-}
+        status: "verified";
+        domain: string;
+        fqdn: string;
+        host: string;
+        recordType: string;
+        value?: string;
+        token?: string;
+        ttl?: number;
+        answers: string[];
+        verifiedAt: string;
+    }
     | {
-    status: "pending" | "failed" | string;
-    domain: string;
-    fqdn: string;
-    expectedToken: string;
-    answers: string[];
-    rawAnswers?: string[][];
-    resolverError?: { name: string; code: string; message: string };
-    note?: string;
-};
+        status: "pending" | "failed" | string;
+        domain: string;
+        fqdn: string;
+        host: string;
+        recordType: string;
+        value?: string;
+        expectedToken?: string;
+        ttl?: number;
+        answers: string[];
+        rawAnswers?: string[][];
+        resolverError?: { name: string; code: string; message: string };
+        note?: string;
+    };
 
 // ====== Helpers ======
 function statusToBadge(status: DomainRow["status"]): { label: string; color: "success" | "warning" | "error" } {
@@ -76,14 +84,40 @@ function statusToBadge(status: DomainRow["status"]): { label: string; color: "su
     }
 }
 
+// Helper to safely get token value from CheckRes
+function getTokenValue(preview: CheckRes | null): string {
+    if (!preview) return "—";
+
+    // API returns 'value' property with the TXT record value
+    if ("value" in preview && preview.value) {
+        return preview.value;
+    }
+
+    // Fallback to other possible properties
+    if ("expectedToken" in preview && preview.expectedToken) {
+        return preview.expectedToken;
+    }
+    if ("token" in preview && preview.token) {
+        return preview.token;
+    }
+
+    return "—";
+}
+
 const Page = () => {
     // Table state
     const [rows, setRows] = useState<DomainRow[]>([]);
     const [loadingTable, setLoadingTable] = useState(false);
     const [tableError, setTableError] = useState<string | null>(null);
 
-    // Create modal state (reusing from earlier flow if you used it)
+    // Create modal state
     const [createOpen, setCreateOpen] = useState(false);
+    const [createDomain, setCreateDomain] = useState("");
+    const [createHost, setCreateHost] = useState("_gp-verify");
+    const [createTTL, setCreateTTL] = useState<number | "">("");
+    const [createError, setCreateError] = useState<string | null>(null);
+    const [createLoading, setCreateLoading] = useState<"idle" | "preview" | "submit">("idle");
+    const [createPreview, setCreatePreview] = useState<CheckRes | null>(null);
 
     // Details modal state
     const [detailsOpen, setDetailsOpen] = useState(false);
@@ -244,6 +278,77 @@ const Page = () => {
         }
     }
 
+    // ====== Create modal ======
+    function closeCreate() {
+        setCreateOpen(false);
+        setCreateDomain("");
+        setCreateHost("_gp-verify");
+        setCreateTTL("");
+        setCreateError(null);
+        setCreateLoading("idle");
+        setCreatePreview(null);
+    }
+
+    async function previewCreate() {
+        if (!createDomain.trim()) {
+            setCreateError("Domain is required.");
+            return;
+        }
+        setCreateError(null);
+        setCreateLoading("preview");
+        setCreatePreview(null);
+        try {
+            const res = await fetch(ENDPOINTS.preview, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                cache: "no-store",
+                body: JSON.stringify({
+                    domain: createDomain.trim(),
+                    host: createHost.trim() || undefined,
+                    ttl: createTTL === "" ? undefined : Number(createTTL),
+                }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const data: CheckRes = await res.json();
+            setCreatePreview(data);
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Preview failed.";
+            setCreateError(message);
+        } finally {
+            setCreateLoading("idle");
+        }
+    }
+
+    async function submitCreate() {
+        if (!createDomain.trim()) {
+            setCreateError("Domain is required.");
+            return;
+        }
+        setCreateError(null);
+        setCreateLoading("submit");
+        try {
+            const res = await fetch(ENDPOINTS.initiate, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                cache: "no-store",
+                body: JSON.stringify({
+                    domain: createDomain.trim(),
+                    host: createHost.trim() || undefined,
+                    ttl: createTTL === "" ? undefined : Number(createTTL),
+                }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            await fetchRows();
+            closeCreate();
+            alert("Domain registered successfully! Check its status by clicking 'Check Status'.");
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Registration failed.";
+            setCreateError(message);
+        } finally {
+            setCreateLoading("idle");
+        }
+    }
+
     return (
         <div className={"mt-20"}>
             <div className={"flex items-center justify-between mb-4"}>
@@ -302,8 +407,8 @@ const Page = () => {
                                                     {row.domain}
                                                 </button>
                                                 <span className="block text-xs text-gray-500">
-                          {row.verifiedAt ? `Verified: ${new Date(row.verifiedAt).toLocaleString()}` : `Updated: ${row.updatedAt ? new Date(row.updatedAt).toLocaleString() : "—"}`}
-                        </span>
+                                                    {row.verifiedAt ? `Verified: ${new Date(row.verifiedAt).toLocaleString()}` : `Updated: ${row.updatedAt ? new Date(row.updatedAt).toLocaleString() : "—"}`}
+                                                </span>
                                             </TableCell>
 
                                             <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400 break-all">
@@ -413,8 +518,8 @@ const Page = () => {
                                     {detailsLoading === "check" ? "Checking..." : "Check Status"}
                                 </button>
                                 <span className="text-xs text-gray-500 self-center">
-                  TTL: {selectedRow.ttl ?? "—"} • Status: {selectedRow.status}
-                </span>
+                                    TTL: {selectedRow.ttl ?? "—"} • Status: {selectedRow.status}
+                                </span>
                             </div>
 
                             {detailsError && (
@@ -529,7 +634,7 @@ const Page = () => {
             )}
 
             {/* OPTIONAL: your existing Create modal can live here; keeping createOpen for future use */}
-            {createOpen && (
+            {/* {createOpen && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/40" onClick={() => setCreateOpen(false)} />
                     <div className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-800 dark:bg-white/[0.03]">
@@ -540,6 +645,162 @@ const Page = () => {
                         <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
                             You can reuse your earlier “Preview → Submit & Save” modal here if you want the create flow on this page.
                         </p>
+                    </div>
+                </div>
+            )} */}
+            {createOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40" onClick={closeCreate} />
+                    <div className="relative w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-800 dark:bg-white/[0.03]">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-base font-medium text-gray-800 dark:text-white/90">
+                                {createPreview ? "Review & Confirm" : "Register New Domain"}
+                            </h4>
+                            <button onClick={closeCreate} className="rounded-md px-2 py-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                        </div>
+
+                        {!createPreview ? (
+                            // Step 1: Form
+                            <div className="mt-5 space-y-5">
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">Domain Name *</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g., example.com"
+                                            value={createDomain}
+                                            onChange={(e) => setCreateDomain(e.target.value)}
+                                            disabled={createLoading === "preview"}
+                                            className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">Host Prefix</label>
+                                        <input
+                                            type="text"
+                                            placeholder="_gp-verify"
+                                            value={createHost}
+                                            onChange={(e) => setCreateHost(e.target.value)}
+                                            disabled={createLoading === "preview"}
+                                            className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">TTL (seconds)</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            placeholder="3600"
+                                            value={createTTL}
+                                            onChange={(e) => setCreateTTL(e.target.value === "" ? "" : Number(e.target.value))}
+                                            disabled={createLoading === "preview"}
+                                            className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+                                </div>
+
+                                {createError && (
+                                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200">
+                                        {createError}
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3 justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={closeCreate}
+                                        disabled={createLoading === "preview"}
+                                        className="inline-flex items-center justify-center font-medium gap-2 rounded-lg transition px-4 py-2 text-sm border border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={previewCreate}
+                                        disabled={!createDomain.trim() || createLoading === "preview"}
+                                        className="inline-flex items-center justify-center font-medium gap-2 rounded-lg transition px-4 py-2 text-sm bg-indigo-600 text-white shadow-theme-xs hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                                    >
+                                        {createLoading === "preview" ? "Previewing..." : "Preview"}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            // Step 2: Preview & Confirm
+                            <div className="mt-5 space-y-5">
+                                <div className="space-y-3">
+                                    <div className="rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
+                                        <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Domain Details</div>
+                                        <div className="space-y-2 font-mono text-sm">
+                                            <div><span className="text-gray-600 dark:text-gray-400">Domain:</span> <span className="font-semibold">{createDomain}</span></div>
+                                            <div><span className="text-gray-600 dark:text-gray-400">Host:</span> <span className="font-semibold">{createHost}</span></div>
+                                            <div><span className="text-gray-600 dark:text-gray-400">TTL:</span> <span className="font-semibold">{createTTL || "default"}</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
+                                        <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">TXT Record to Add</div>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Host/Name:</div>
+                                                <div className="font-mono text-sm break-all bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                                                    <span>{`${createHost}.${createDomain}`}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => copy(`${createHost}.${createDomain}`)}
+                                                        className="text-xs text-indigo-600 hover:underline dark:text-indigo-400 ml-2"
+                                                    >
+                                                        Copy
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Value:</div>
+                                                <div className="font-mono text-sm break-all bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                                                    <span>{getTokenValue(createPreview)}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => copy(getTokenValue(createPreview))}
+                                                        className="text-xs text-indigo-600 hover:underline dark:text-indigo-400 ml-2"
+                                                    >
+                                                        Copy
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-800 dark:text-blue-200">
+                                        <span className="font-medium">ℹ️ Important:</span> Add the TXT record to your domain&apos;s DNS settings, then click &quot;Confirm &amp; Register&quot; to save.
+                                    </div>
+                                </div>
+
+                                {createError && (
+                                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-200">
+                                        {createError}
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3 justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCreatePreview(null)}
+                                        disabled={createLoading === "submit"}
+                                        className="inline-flex items-center justify-center font-medium gap-2 rounded-lg transition px-4 py-2 text-sm border border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={submitCreate}
+                                        disabled={createLoading === "submit"}
+                                        className="inline-flex items-center justify-center font-medium gap-2 rounded-lg transition px-4 py-2 text-sm bg-green-600 text-white shadow-theme-xs hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed"
+                                    >
+                                        {createLoading === "submit" ? "Registering..." : "Confirm & Register"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
