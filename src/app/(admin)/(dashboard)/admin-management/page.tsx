@@ -6,12 +6,12 @@ import {
 } from "../../../../components/ui/table";
 import Badge from "../../../../components/ui/badge/Badge";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:4000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://clearshiftwellbeingapis-production.up.railway.app";
 const ENDPOINTS = {
-    admins:  `${API_BASE}/admins`,
+    admins: `${API_BASE}/admins`,
     adminId: (id: string) => `${API_BASE}/admins/${id}`,
-    rotate:  (id: string) => `${API_BASE}/admins/${id}/license/rotate`,
-    revoke:  (id: string) => `${API_BASE}/admins/${id}/license/revoke`,
+    rotate: (id: string) => `${API_BASE}/admins/${id}/license/rotate`,
+    revoke: (id: string) => `${API_BASE}/admins/${id}/license/revoke`,
     domains: `${API_BASE}/domains`,
 };
 
@@ -142,10 +142,10 @@ const Page = () => {
                 cache: "no-store",
                 body: JSON.stringify({
                     firstName: cFirst,
-                    lastName:  cLast,
-                    email:     cEmail,
-                    phone:     cPhone || undefined,
-                    domain:    chosen.domain,
+                    lastName: cLast,
+                    email: cEmail,
+                    phone: cPhone || undefined,
+                    domain: chosen.domain,
                 }),
             });
             if (!res.ok) throw new Error(await res.text());
@@ -246,9 +246,9 @@ const Page = () => {
                 cache: "no-store",
                 body: JSON.stringify({
                     firstName: eFirst || undefined,
-                    lastName:  eLast  || undefined,
-                    email:     eEmail || undefined,
-                    phone:     ePhone || undefined,
+                    lastName: eLast || undefined,
+                    email: eEmail || undefined,
+                    phone: ePhone || undefined,
                 }),
             });
             if (!res.ok) throw new Error(await res.text());
@@ -306,7 +306,7 @@ const Page = () => {
                                         <TableRow key={r._id}>
                                             <TableCell className="px-5 py-4">
                                                 <button className="font-medium text-indigo-600 hover:underline text-left"
-                                                        onClick={() => openDetails(r)} title="View license & actions">
+                                                    onClick={() => openDetails(r)} title="View license & actions">
                                                     {name}
                                                 </button>
                                             </TableCell>
@@ -320,12 +320,12 @@ const Page = () => {
                                             <TableCell className="px-5 py-4 flex gap-3">
                                                 {/* Edit */}
                                                 <button className="text-gray-700 hover:text-indigo-500"
-                                                        onClick={() => openEdit(r)} title="Edit">
+                                                    onClick={() => openEdit(r)} title="Edit">
                                                     ✏️
                                                 </button>
                                                 {/* Delete */}
                                                 <button className="text-gray-700 hover:text-red-500"
-                                                        onClick={() => deleteRow(r._id)} title="Delete">
+                                                    onClick={() => deleteRow(r._id)} title="Delete">
                                                     🗑️
                                                 </button>
                                             </TableCell>
@@ -367,22 +367,22 @@ const Page = () => {
                                 <div>
                                     <label className="mb-1 block text-xs text-gray-500">First Name</label>
                                     <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                                           value={cFirst} onChange={e => setCFirst(e.target.value)} />
+                                        value={cFirst} onChange={e => setCFirst(e.target.value)} />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-xs text-gray-500">Last Name</label>
                                     <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                                           value={cLast} onChange={e => setCLast(e.target.value)} />
+                                        value={cLast} onChange={e => setCLast(e.target.value)} />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-xs text-gray-500">Email</label>
                                     <input type="email" className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                                           value={cEmail} onChange={e => setCEmail(e.target.value)} />
+                                        value={cEmail} onChange={e => setCEmail(e.target.value)} />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-xs text-gray-500">Phone (optional)</label>
                                     <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                                           value={cPhone} onChange={e => setCPhone(e.target.value)} />
+                                        value={cPhone} onChange={e => setCPhone(e.target.value)} />
                                 </div>
                             </div>
 
@@ -454,8 +454,8 @@ const Page = () => {
                                     {detailsLoading === "revoke" ? "Revoking…" : "Revoke License"}
                                 </button>
                                 <span className="ml-auto text-xs text-gray-500 self-center">
-                  Status: {sel.licenseStatus} • Issued: {sel.issuedAt ? new Date(sel.issuedAt).toLocaleString() : "—"}
-                </span>
+                                    Status: {sel.licenseStatus} • Issued: {sel.issuedAt ? new Date(sel.issuedAt).toLocaleString() : "—"}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -477,22 +477,22 @@ const Page = () => {
                                 <div>
                                     <label className="mb-1 block text-xs text-gray-500">First Name</label>
                                     <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                                           value={eFirst} onChange={e => setEFirst(e.target.value)} />
+                                        value={eFirst} onChange={e => setEFirst(e.target.value)} />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-xs text-gray-500">Last Name</label>
                                     <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                                           value={eLast} onChange={e => setELast(e.target.value)} />
+                                        value={eLast} onChange={e => setELast(e.target.value)} />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-xs text-gray-500">Email</label>
                                     <input type="email" className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                                           value={eEmail} onChange={e => setEEmail(e.target.value)} />
+                                        value={eEmail} onChange={e => setEEmail(e.target.value)} />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-xs text-gray-500">Phone</label>
                                     <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                                           value={ePhone} onChange={e => setEPhone(e.target.value)} />
+                                        value={ePhone} onChange={e => setEPhone(e.target.value)} />
                                 </div>
                             </div>
 

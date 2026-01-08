@@ -11,7 +11,7 @@ import {
 import Badge from "../../../../components/ui/badge/Badge";
 
 // ====== API base & endpoints (adjust if needed) ======
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:4000"; // e.g. "https://api.yourdomain.com"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://clearshiftwellbeingapis-production.up.railway.app"; // e.g. "https://api.yourdomain.com"
 const ENDPOINTS = {
     list: `${API_BASE}/domains`,                     // GET
     preview: `${API_BASE}/domains/verify/preview`,   // POST { domain, ttl? }
