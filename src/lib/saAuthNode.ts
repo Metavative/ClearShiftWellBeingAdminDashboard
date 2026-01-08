@@ -1,4 +1,4 @@
-import "server-only";            // makes Next warn if imported on the client/edge
+import "server-only";
 import crypto from "crypto";
 
 const b64url = {
