@@ -33,7 +33,7 @@ export default function AdminUsersPage() {
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch(`${API}/api/admin/me`, { cache: "no-store" });
+                const res = await fetch("/api/admin/me", { cache: "no-store" });
                 const data = await res.json();
                 if (!res.ok || !data?.ok) {
                     setErr("Session expired"); setLoading(false); return;

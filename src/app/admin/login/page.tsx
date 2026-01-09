@@ -3,8 +3,6 @@
 import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const API = process.env.NEXT_PUBLIC_API_BASE || "";
-
 function AdminLoginContent() {
     const router = useRouter();
     const next = useSearchParams().get("next") || "/admin/dashboard";
@@ -16,7 +14,7 @@ function AdminLoginContent() {
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault(); setErr(null); setLoading(true);
         try {
-            const res = await fetch(`${API}/api/admin/login`, {
+            const res = await fetch("/api/admin/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ domain: domain.trim().toLowerCase(), licenseKey: licenseKey.trim() }),

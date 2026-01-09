@@ -31,7 +31,7 @@ export default function AdminQuestionsPage() {
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch(`${API_BASE}/api/admin/me`, { cache: "no-store" });
+                const res = await fetch("/api/admin/me", { cache: "no-store" });
                 const data = await res.json();
                 if (!res.ok || !data?.ok) {
                     setErr("Session expired. Please log in again.");
