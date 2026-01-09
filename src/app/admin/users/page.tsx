@@ -27,13 +27,13 @@ export default function AdminUsersPage() {
     // edit modal
     const [editing, setEditing] = useState<Employee | null>(null);
     const [editName, setEditName] = useState("");
-    const [editRole, setEditRole] = useState<"employee"|"admin">("employee");
+    const [editRole, setEditRole] = useState<"employee" | "admin">("employee");
     const [editVerified, setEditVerified] = useState(false);
 
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch("/api/admin/me", { cache: "no-store" });
+                const res = await fetch(`${API}/api/admin/me`, { cache: "no-store" });
                 const data = await res.json();
                 if (!res.ok || !data?.ok) {
                     setErr("Session expired"); setLoading(false); return;
@@ -142,17 +142,17 @@ export default function AdminUsersPage() {
                     <div>
                         <label className="text-xs text-gray-500">Name (optional)</label>
                         <input className="mt-1 h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                               value={name} onChange={(e) => setName(e.target.value)} />
+                            value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
                     <div>
                         <label className="text-xs text-gray-500">Email</label>
                         <input className="mt-1 h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                               value={email} onChange={(e) => setEmail(e.target.value)} placeholder="employee@company.com" />
+                            value={email} onChange={(e) => setEmail(e.target.value)} placeholder="employee@company.com" />
                     </div>
                 </div>
                 <div className="mt-3">
                     <button onClick={createUser}
-                            className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700">
+                        className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700">
                         Invite User
                     </button>
                 </div>
@@ -187,13 +187,13 @@ export default function AdminUsersPage() {
                             <div>
                                 <label className="text-xs text-gray-500">Name</label>
                                 <input value={editName} onChange={(e) => setEditName(e.target.value)}
-                                       className="mt-1 h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-800" />
+                                    className="mt-1 h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-800" />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs text-gray-500">Role</label>
                                     <select value={editRole} onChange={(e) => setEditRole(e.target.value as "employee" | "admin")}
-                                            className="mt-1 h-11 w-full rounded-lg border px-3 text-sm dark:bg-gray-800">
+                                        className="mt-1 h-11 w-full rounded-lg border px-3 text-sm dark:bg-gray-800">
                                         <option value="employee">Employee</option>
                                         <option value="admin">Admin</option>
                                     </select>

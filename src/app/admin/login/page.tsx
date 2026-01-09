@@ -3,6 +3,8 @@
 import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+const API = process.env.NEXT_PUBLIC_API_BASE || "";
+
 function AdminLoginContent() {
     const router = useRouter();
     const next = useSearchParams().get("next") || "/admin/dashboard";
@@ -14,7 +16,7 @@ function AdminLoginContent() {
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault(); setErr(null); setLoading(true);
         try {
-            const res = await fetch("/api/admin/login", {
+            const res = await fetch(`${API}/api/admin/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ domain: domain.trim().toLowerCase(), licenseKey: licenseKey.trim() }),
@@ -34,16 +36,16 @@ function AdminLoginContent() {
                     <div>
                         <label className="mb-1 block text-xs text-gray-500">Domain</label>
                         <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                               value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="metavative.com" autoFocus />
+                            value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="metavative.com" autoFocus />
                     </div>
                     <div>
                         <label className="mb-1 block text-xs text-gray-500">License Key</label>
                         <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
-                               value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} placeholder="csw-lic-ABCD-1234-..." />
+                            value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} placeholder="csw-lic-ABCD-1234-..." />
                     </div>
                     {err && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}
                     <button type="submit" disabled={loading}
-                            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:bg-indigo-400">
+                        className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:bg-indigo-400">
                         {loading ? "Signing in…" : "Sign In"}
                     </button>
                     <p className="mt-2 text-xs text-gray-500">Use your assigned domain and license key. Contact Super Admin for help.</p>

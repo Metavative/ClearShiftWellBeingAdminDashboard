@@ -7,8 +7,8 @@ import Backdrop from "@/layout/Backdrop";
 import React from "react";
 
 export default function AdminLayout({
-                                        children,
-                                    }: {
+    children,
+}: {
     children: React.ReactNode;
 }) {
     const { isExpanded, isHovered, isMobileOpen } = useSidebar();
