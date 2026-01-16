@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-// @ts-ignore
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -85,9 +84,7 @@ export default function AdminPrivacyPoliciesPage() {
         }
     }
 
-    useEffect(() => {
-        console.log("Privacy Policies: ", items);
-    }, []);
+
 
     function openCreateModal() {
         setModal({
@@ -196,7 +193,7 @@ export default function AdminPrivacyPoliciesPage() {
                 <div className="divide-y">
                     {items.length === 0 && (
                         <div className="p-4 text-gray-500 text-center">
-                            No privacy policies yet. Click "Create +" to add one.
+                            No privacy policies yet. Click &quot;Create +&quot; to add one.
                         </div>
                     )}
                     {items.map((policy) => (

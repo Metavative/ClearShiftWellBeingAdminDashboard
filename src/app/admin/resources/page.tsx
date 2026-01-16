@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { PlusIcon, TrashBinIcon, PencilIcon } from "@/icons"; // Assuming these exist or similar
+
 
 // Use the same API base as privacy policy page
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://clearshiftwellbeingapis-production.up.railway.app";
@@ -226,7 +226,7 @@ export default function AdminResourcesPage() {
                 <div className="divide-y">
                     {items.length === 0 && (
                         <div className="p-4 text-gray-500 text-center">
-                            No resources found. Click "Create +" to add one.
+                            No resources found. Click &quot;Create +&quot; to add one.
                         </div>
                     )}
                     {items.map((item) => (
