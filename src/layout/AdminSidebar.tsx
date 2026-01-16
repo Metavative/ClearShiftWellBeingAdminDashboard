@@ -41,6 +41,11 @@ const navItems: NavItem[] = [
         name: "Resources",
         subItems: [{ name: "Manage Resources", path: "resources" }],
     },
+    {
+        icon: <ListIcon />,
+        name: "Check-in Responses",
+        subItems: [{ name: "View Responses", path: "checkin-responses" }],
+    },
 ];
 
 const AdminSidebar: React.FC = () => {
