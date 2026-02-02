@@ -11,7 +11,7 @@ import {
 import Badge from "../../../../components/ui/badge/Badge";
 
 // ====== API base & endpoints (adjust if needed) ======
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://clearshiftwellbeingapis-production.up.railway.app"; // e.g. "https://api.yourdomain.com"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:4001"; // e.g. "https://api.yourdomain.com"
 const ENDPOINTS = {
     list: `${API_BASE}/domains`,                     // GET
     preview: `${API_BASE}/domains/verify/preview`,   // POST { domain, ttl? }
@@ -485,10 +485,10 @@ const Page = () => {
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div className="rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
                                     <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Host</div>
-                                    <div className="mt-1 font-mono text-sm break-all">{`${selectedRow.host}.${selectedRow.domain}`}</div>
+                                    <div className="mt-1 font-mono text-sm break-all">{`${selectedRow.host}`}</div>
                                     <button
                                         type="button"
-                                        onClick={() => copy(`${selectedRow.host}.${selectedRow.domain}`)}
+                                        onClick={() => copy(`${selectedRow.host}`)}
                                         className="mt-2 w-full rounded-md border px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-700"
                                     >
                                         Copy Host

@@ -13,8 +13,107 @@ type CheckInResponse = {
         question: string;
         option: string;
         description: string;
+        isPositive?: boolean;
     }[];
     submittedAt: string;
+};
+
+// Detect if a question is positive or negative based on question text
+const detectQuestionSentiment = (questionText: string): boolean => {
+    const text = questionText.toLowerCase();
+    
+    // Positive question indicators (feeling good/supported is the desired state)
+    const positiveIndicators = [
+        'supported', 'respected', 'listened', 'valued', 'appreciated',
+        'comfortable', 'satisfied', 'happy', 'motivated', 'engaged',
+        'confident', 'empowered', 'recognized', 'fulfilled', 'safe',
+        'balanced', 'positive', 'good', 'well', 'energized'
+    ];
+    
+    // Negative question indicators (feeling bad/stressed is being asked about)
+    const negativeIndicators = [
+        'pressure', 'stress', 'overwhelmed', 'anxious', 'worried',
+        'uncomfortable', 'discomfort', 'difficulty', 'problem', 'issue',
+        'conflict', 'tension', 'exhausted', 'burned out', 'frustrated',
+        'isolated', 'discriminated', 'harassed', 'bullied', 'affect'
+    ];
+    
+    // Check for negative indicators first (more specific)
+    for (const indicator of negativeIndicators) {
+        if (text.includes(indicator)) return false;
+    }
+    
+    // Check for positive indicators
+    for (const indicator of positiveIndicators) {
+        if (text.includes(indicator)) return true;
+    }
+    
+    // Default to positive if uncertain
+    return true;
+};
+
+// RAG (Red, Amber, Green) color function for check-in responses
+const optionColor = (option: string, isPositive?: boolean, questionText?: string): string => {
+    const text = String(option).toLowerCase().trim();
+    
+    // If isPositive is not provided, infer from question text
+    const questionIsPositive = isPositive ?? (questionText ? detectQuestionSentiment(questionText) : true);
+    
+    // IMPORTANT: Check "prefer not" BEFORE "no" to prevent false matches
+    // Neutral/Prefer not to say: Always Amber
+    if (
+        text.includes('neutral') ||
+        text.includes('prefer not') ||
+        text.includes('n/a') ||
+        text.includes('not applicable')
+    ) return '#f9a825';
+    
+    // Other: Amber (similar to prefer not to say)
+    if (text.includes('other')) return '#f9a825';
+    
+    // Negative intensity words - Red for negative impact
+    if (
+        text.includes('heavy') ||
+        text.includes('severe') ||
+        text.includes('major') ||
+        text.includes('significant') ||
+        text.includes('high') ||
+        text.includes('very much') ||
+        text.includes('strongly') ||
+        text.includes('extremely')
+    ) return '#c62828';
+    
+    // Positive intensity words - Green for positive impact
+    if (
+        text.includes('light') ||
+        text.includes('minor') ||
+        text.includes('slight') ||
+        text.includes('low') ||
+        text.includes('minimal') ||
+        text.includes('not much')
+    ) return '#43a047';
+    
+    // Medium/moderate - Amber
+    if (
+        text.includes('medium') ||
+        text.includes('moderate') ||
+        text.includes('some') ||
+        text.includes('somewhat') ||
+        text.includes('mixed') ||
+        text.includes('average')
+    ) return '#f9a825';
+    
+    // Yes answers: Green for positive questions, Red for negative questions
+    if (text.includes('yes')) return questionIsPositive ? '#43a047' : '#c62828';
+    
+    // No answers: Red for positive questions, Green for negative questions
+    // Use word boundary to avoid matching "not", "minor", etc.
+    if (text === 'no' || text.startsWith('no ') || text.endsWith(' no')) {
+        return questionIsPositive ? '#c62828' : '#43a047';
+    }
+    
+    // Default: Blue-grey for unknown options
+    return '#607d8b';
 };
 
 export default function CheckInResponsesPage() {
@@ -157,9 +256,19 @@ export default function CheckInResponsesPage() {
                                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     {answer.question}
                                                 </p>
-                                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                    Answer: <span className="font-semibold">{answer.option}</span>
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    {/* RAG Color Dot */}
+                                                    <div
+                                                        className="w-3 h-3 rounded-full flex-shrink-0"
+                                                        style={{
+                                                            backgroundColor: optionColor(answer.option, answer.isPositive, answer.question),
+                                                        }}
+                                                        title={`Question sentiment: ${detectQuestionSentiment(answer.question) ? 'Positive' : 'Negative'}`}
+                                                    />
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                        Answer: <span className="font-semibold">{answer.option}</span>
+                                                    </p>
+                                                </div>
                                                 {answer.description && (
                                                     <p className="text-xs text-gray-500 mt-1 italic">
                                                         Note: {answer.description}
