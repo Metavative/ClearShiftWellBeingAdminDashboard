@@ -13,7 +13,7 @@ const ENDPOINTS = {
     rotate: (id: string) => `${API_BASE}/admins/${id}/license/rotate`,
     revoke: (id: string) => `${API_BASE}/admins/${id}/license/revoke`,
     domains: `${API_BASE}/domains`,
-};
+}
 
 type AdminRow = {
     _id: string;
