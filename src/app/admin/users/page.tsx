@@ -17,6 +17,7 @@ const API = process.env.NEXT_PUBLIC_API_BASE || "";
 export default function AdminUsersPage() {
     const [domain, setDomain] = useState("");
     const [items, setItems] = useState<Employee[]>([]);
+    const [seatLimit, setSeatLimit] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
 
@@ -63,10 +64,34 @@ export default function AdminUsersPage() {
 
     useEffect(() => { if (domain) reload(); }, [domain, reload]);
 
+    useEffect(() => {
+        (async () => {
+            if (!domain) return;
+            try {
+                const res = await fetch(
+                    `${API}/admins?domain=${encodeURIComponent(domain)}&limit=1`,
+                    { cache: "no-store" }
+                );
+                if (!res.ok) return;
+                const data = await res.json();
+                const admin = Array.isArray(data) ? data[0] : data?.items?.[0];
+                const parsed =
+                    typeof admin?.seatLimit === "number" ? admin.seatLimit : null;
+                setSeatLimit(parsed);
+            } catch {
+                setSeatLimit(null);
+            }
+        })();
+    }, [domain]);
+
     // reload is defined above with useCallback
 
     async function createUser() {
         if (!email) return;
+        if (typeof seatLimit === "number" && items.length >= seatLimit) {
+            alert(`Seat limit reached (${items.length}/${seatLimit}).`);
+            return;
+        }
         try {
             const res = await fetch(`${API}/company/users`, {
                 method: "POST",
@@ -134,6 +159,13 @@ export default function AdminUsersPage() {
             <div>
                 <h1 className="text-2xl font-semibold">Users</h1>
                 <p className="text-sm text-gray-500">Domain: <span className="font-mono">{domain}</span></p>
+                <p className="text-sm text-gray-500">
+                    Seats:{" "}
+                    <span className="font-mono">
+                        {items.length}/
+                        {typeof seatLimit === "number" ? seatLimit : "Unlimited"}
+                    </span>
+                </p>
             </div>
 
             {/* Create */}
@@ -152,6 +184,7 @@ export default function AdminUsersPage() {
                 </div>
                 <div className="mt-3">
                     <button onClick={createUser}
+                        disabled={typeof seatLimit === "number" && items.length >= seatLimit}
                         className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700">
                         Invite User
                     </button>

@@ -26,6 +26,7 @@ type AdminRow = {
     licenseKey: string;
     licenseStatus: "active" | "revoked";
     issuedAt?: string;
+    seatLimit?: number | null;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -58,6 +59,7 @@ const Page = () => {
     const [cLast, setCLast] = useState("");
     const [cEmail, setCEmail] = useState("");
     const [cPhone, setCPhone] = useState("");
+    const [cSeatLimit, setCSeatLimit] = useState<number | "">("");
     const [createLoading, setCreateLoading] = useState<"idle" | "loading">("idle");
     const [createError, setCreateError] = useState<string | null>(null);
 
@@ -73,6 +75,7 @@ const Page = () => {
     const [eLast, setELast] = useState("");
     const [eEmail, setEEmail] = useState("");
     const [ePhone, setEPhone] = useState("");
+    const [eSeatLimit, setESeatLimit] = useState<number | "">("");
     const [editLoading, setEditLoading] = useState<"idle" | "save">("idle");
     const [editError, setEditError] = useState<string | null>(null);
 
@@ -114,7 +117,7 @@ const Page = () => {
 
     // ===== Create handlers =====
     function openCreate() {
-        setCFirst(""); setCLast(""); setCEmail(""); setCPhone(""); setCDomainId("");
+        setCFirst(""); setCLast(""); setCEmail(""); setCPhone(""); setCDomainId(""); setCSeatLimit("");
         setCreateError(null); setCreateLoading("idle");
         setCreateOpen(true);
         fetchVerifiedDomains();
@@ -133,6 +136,10 @@ const Page = () => {
             setCreateError("Please select a verified domain.");
             return;
         }
+        if (cSeatLimit !== "" && (!Number.isInteger(Number(cSeatLimit)) || Number(cSeatLimit) < 1)) {
+            setCreateError("Seat limit must be a positive whole number.");
+            return;
+        }
         setCreateLoading("loading");
         try {
             // Backend expects domain string (and will resolve domainId)
@@ -146,6 +153,7 @@ const Page = () => {
                     email: cEmail,
                     phone: cPhone || undefined,
                     domain: chosen.domain,
+                    seatLimit: cSeatLimit === "" ? null : Number(cSeatLimit),
                 }),
             });
             if (!res.ok) throw new Error(await res.text());
@@ -228,6 +236,7 @@ const Page = () => {
     function openEdit(row: AdminRow) {
         setSel(row);
         setEFirst(row.firstName); setELast(row.lastName); setEEmail(row.email); setEPhone(row.phone || "");
+        setESeatLimit(typeof row.seatLimit === "number" ? row.seatLimit : "");
         setEditError(null); setEditLoading("idle");
         setEditOpen(true);
     }
@@ -240,6 +249,9 @@ const Page = () => {
         setEditError(null);
         setEditLoading("save");
         try {
+            if (eSeatLimit !== "" && (!Number.isInteger(Number(eSeatLimit)) || Number(eSeatLimit) < 1)) {
+                throw new Error("Seat limit must be a positive whole number.");
+            }
             const res = await fetch(ENDPOINTS.adminId(sel._id), {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -249,6 +261,7 @@ const Page = () => {
                     lastName: eLast || undefined,
                     email: eEmail || undefined,
                     phone: ePhone || undefined,
+                    seatLimit: eSeatLimit === "" ? null : Number(eSeatLimit),
                 }),
             });
             if (!res.ok) throw new Error(await res.text());
@@ -281,6 +294,7 @@ const Page = () => {
                                     <TableCell isHeader className="px-5 py-3 text-theme-xs text-gray-500 dark:text-gray-400">Email</TableCell>
                                     <TableCell isHeader className="px-5 py-3 text-theme-xs text-gray-500 dark:text-gray-400">Phone</TableCell>
                                     <TableCell isHeader className="px-5 py-3 text-theme-xs text-gray-500 dark:text-gray-400">Domain</TableCell>
+                                    <TableCell isHeader className="px-5 py-3 text-theme-xs text-gray-500 dark:text-gray-400">Seat Limit</TableCell>
                                     <TableCell isHeader className="px-5 py-3 text-theme-xs text-gray-500 dark:text-gray-400">License</TableCell>
                                     <TableCell isHeader className="px-5 py-3 text-theme-xs text-gray-500 dark:text-gray-400">Status</TableCell>
                                     <TableCell isHeader className="px-5 py-3 text-theme-xs text-gray-500 dark:text-gray-400">Manage</TableCell>
@@ -289,13 +303,13 @@ const Page = () => {
 
                             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                                 {loadingTable && (
-                                    <TableRow><TableCell className="px-5 py-4" {...({ colSpan: 7 } as React.TdHTMLAttributes<HTMLTableCellElement>)}>Loading…</TableCell></TableRow>
+                                    <TableRow><TableCell className="px-5 py-4" {...({ colSpan: 8 } as React.TdHTMLAttributes<HTMLTableCellElement>)}>Loading…</TableCell></TableRow>
                                 )}
                                 {tableError && !loadingTable && (
-                                    <TableRow><TableCell className="px-5 py-4 text-red-600" {...({ colSpan: 7 } as React.TdHTMLAttributes<HTMLTableCellElement>)}>{tableError}</TableCell></TableRow>
+                                    <TableRow><TableCell className="px-5 py-4 text-red-600" {...({ colSpan: 8 } as React.TdHTMLAttributes<HTMLTableCellElement>)}>{tableError}</TableCell></TableRow>
                                 )}
                                 {!loadingTable && !tableError && rows.length === 0 && (
-                                    <TableRow><TableCell className="px-5 py-4" {...({ colSpan: 7 } as React.TdHTMLAttributes<HTMLTableCellElement>)}>No admins yet. Click “Create +”.</TableCell></TableRow>
+                                    <TableRow><TableCell className="px-5 py-4" {...({ colSpan: 8 } as React.TdHTMLAttributes<HTMLTableCellElement>)}>No admins yet. Click “Create +”.</TableCell></TableRow>
                                 )}
 
                                 {rows.map((r) => {
@@ -313,6 +327,7 @@ const Page = () => {
                                             <TableCell className="px-5 py-4">{r.email}</TableCell>
                                             <TableCell className="px-5 py-4">{r.phone || "—"}</TableCell>
                                             <TableCell className="px-5 py-4">{r.domain}</TableCell>
+                                            <TableCell className="px-5 py-4">{typeof r.seatLimit === "number" ? r.seatLimit : "Unlimited"}</TableCell>
                                             <TableCell className="px-5 py-4 font-mono text-sm break-all">{masked}</TableCell>
                                             <TableCell className="px-5 py-4">
                                                 <Badge size="sm" color={color}>{text}</Badge>
@@ -384,6 +399,17 @@ const Page = () => {
                                     <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
                                         value={cPhone} onChange={e => setCPhone(e.target.value)} />
                                 </div>
+                                <div>
+                                    <label className="mb-1 block text-xs text-gray-500">Seat Limit (optional)</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        placeholder="Leave blank for unlimited"
+                                        className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
+                                        value={cSeatLimit}
+                                        onChange={e => setCSeatLimit(e.target.value === "" ? "" : Number(e.target.value))}
+                                    />
+                                </div>
                             </div>
 
                             {createError && (
@@ -424,6 +450,12 @@ const Page = () => {
                                 <div className="rounded-lg border p-3">
                                     <div className="text-xs text-gray-500">Domain</div>
                                     <div className="font-mono text-sm break-all">{sel.domain}</div>
+                                </div>
+                                <div className="rounded-lg border p-3">
+                                    <div className="text-xs text-gray-500">Seat Limit</div>
+                                    <div className="font-mono text-sm break-all">
+                                        {typeof sel.seatLimit === "number" ? sel.seatLimit : "Unlimited"}
+                                    </div>
                                 </div>
                                 <div className="rounded-lg border p-3">
                                     <div className="text-xs text-gray-500">License Key</div>
@@ -493,6 +525,17 @@ const Page = () => {
                                     <label className="mb-1 block text-xs text-gray-500">Phone</label>
                                     <input className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
                                         value={ePhone} onChange={e => setEPhone(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-xs text-gray-500">Seat Limit</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        placeholder="Leave blank for unlimited"
+                                        className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900"
+                                        value={eSeatLimit}
+                                        onChange={e => setESeatLimit(e.target.value === "" ? "" : Number(e.target.value))}
+                                    />
                                 </div>
                             </div>
 
