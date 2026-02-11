@@ -327,6 +327,7 @@ const Page = () => {
         setCreateError(null);
         setCreateLoading("submit");
         try {
+            const previewToken = getTokenValue(createPreview);
             const res = await fetch(ENDPOINTS.initiate, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -335,6 +336,7 @@ const Page = () => {
                     domain: createDomain.trim(),
                     host: createHost.trim() || undefined,
                     ttl: createTTL === "" ? undefined : Number(createTTL),
+                    token: previewToken !== "—" ? previewToken : undefined,
                 }),
             });
             if (!res.ok) throw new Error(await res.text());
@@ -555,6 +557,14 @@ const Page = () => {
                                             </div>
                                         </div>
                                     )}
+                                    {"expectedToken" in detailsCheck && detailsCheck.expectedToken && (
+                                        <div className="mt-2">
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">Server expected token:</div>
+                                            <div className="mt-1 font-mono text-xs break-all">
+                                                {detailsCheck.expectedToken}
+                                            </div>
+                                        </div>
+                                    )}
                                     {"note" in detailsCheck && detailsCheck.note && (
                                         <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">{detailsCheck.note}</div>
                                     )}
@@ -743,10 +753,10 @@ const Page = () => {
                                             <div>
                                                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Host/Name:</div>
                                                 <div className="font-mono text-sm break-all bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-between">
-                                                    <span>{`${createHost}.${createDomain}`}</span>
+                                                    <span>{`${createHost}`}</span>
                                                     <button
                                                         type="button"
-                                                        onClick={() => copy(`${createHost}.${createDomain}`)}
+                                                        onClick={() => copy(`${createHost}`)}
                                                         className="text-xs text-indigo-600 hover:underline dark:text-indigo-400 ml-2"
                                                     >
                                                         Copy

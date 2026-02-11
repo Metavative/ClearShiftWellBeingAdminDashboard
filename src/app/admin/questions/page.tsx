@@ -22,6 +22,7 @@ export default function AdminQuestionsPage() {
     const [qText, setQText] = useState("");
     const [optInput, setOptInput] = useState("Yes,No,Prefer not to say,Other");
     const [isPositive, setIsPositive] = useState<boolean>(false);
+    const [isSupport, setIsSupport] = useState<boolean>(false);
     const options = useMemo(
         () => optInput.split(",").map((s) => s.trim()).filter(Boolean),
         [optInput]
@@ -86,11 +87,13 @@ export default function AdminQuestionsPage() {
                     question: qText.trim(),
                     options,
                     isActive: true,
-                    isPositive
+                    isPositive,
+                    isSupport,
                 }),
             });
             if (!res.ok) throw new Error(await res.text());
             setQText("");
+            setIsSupport(false);
             await reload();
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : "Create failed";
@@ -161,6 +164,15 @@ export default function AdminQuestionsPage() {
                         />
                         <label htmlFor={"isPositive"} className="text-sm text-gray-700">Positive Question</label>
                     </div>
+                    <div className="mt-3 flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            checked={isSupport}
+                            onChange={(e) => setIsSupport(e.target.checked)}
+                            id="isSupport"
+                        />
+                        <label htmlFor={"isSupport"} className="text-sm text-gray-700">Is Support Question</label>
+                    </div>
 
                 </div>
                 <div className="mt-3">
@@ -180,7 +192,14 @@ export default function AdminQuestionsPage() {
                     {items.map((q) => (
                         <div key={q._id} className="p-4 flex items-start justify-between gap-4">
                             <div>
-                                <div className="font-medium">{q.question}</div>
+                                <div className="font-medium flex items-center gap-2">
+                                    <span>{q.question}</span>
+                                    {q.isSupport ? (
+                                        <span className="rounded-md bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-semibold">
+                                            Support
+                                        </span>
+                                    ) : null}
+                                </div>
                                 <div className="mt-1 text-xs text-gray-500">Options: {q.options.join(", ")}</div>
                             </div>
                             <button

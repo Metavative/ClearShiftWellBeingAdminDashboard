@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://clearshiftwellbeingapis-production.up.railway.app";
 
@@ -142,13 +142,7 @@ export default function CheckInResponsesPage() {
         })();
     }, []);
 
-    // Load responses when domain is available
-    useEffect(() => {
-        if (!domain) return;
-        fetchResponses();
-    }, [domain, employeeFilter]);
-
-    async function fetchResponses() {
+    const fetchResponses = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({ domain });
@@ -178,7 +172,13 @@ export default function CheckInResponsesPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [domain, employeeFilter]);
+
+    // Load responses when domain is available
+    useEffect(() => {
+        if (!domain) return;
+        fetchResponses();
+    }, [domain, fetchResponses]);
 
     if (loading && !domain) return <div className="p-4">Loading...</div>;
     if (err) return <div className="p-4 text-red-600">{err}</div>;

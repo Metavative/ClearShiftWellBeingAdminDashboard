@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 
 // Use the same API base as privacy policy page
@@ -66,16 +66,10 @@ export default function AdminResourcesPage() {
         })();
     }, []);
 
-    // 2) Load resources
-    useEffect(() => {
-        if (!domain) return;
-        fetchResources();
-    }, [domain]);
-
-    async function fetchResources() {
+    const fetchResources = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/content/support-tools/all`, {
+            const res = await fetch(`${API_BASE}/content/support-tools/all?domain=${encodeURIComponent(domain)}`, {
                 cache: "no-store",
             });
             if (!res.ok) {
@@ -90,8 +84,12 @@ export default function AdminResourcesPage() {
             }
             const data = await res.json();
             console.log("Fetched resources data: ", data);
-            // Adapt to response structure. Privacy Policy had data.data or data.data.items
-            setItems(Array.isArray(data.data) ? data.data : data.data?.items || []);
+            const list = Array.isArray(data.data) ? data.data : data.data?.items || [];
+            const mine = (list || []).filter(
+                (item: SupportToolContent) =>
+                    String(item?.domain || "").toLowerCase() === domain.toLowerCase()
+            );
+            setItems(mine);
             setErr(null);
         } catch (e: unknown) {
             console.error(e);
@@ -99,7 +97,13 @@ export default function AdminResourcesPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [domain]);
+
+    // 2) Load resources
+    useEffect(() => {
+        if (!domain) return;
+        fetchResources();
+    }, [domain, fetchResources]);
 
     function openCreateModal() {
         setModal({
@@ -171,7 +175,7 @@ export default function AdminResourcesPage() {
                     eap,
                     hr,
                     crisis,
-                    domain: modal.domain,
+                    domain,
                     isActive: true, // Default active
                 }),
             });
@@ -191,6 +195,8 @@ export default function AdminResourcesPage() {
         try {
             const res = await fetch(`${API_BASE}/content/support-tools/${id}`, {
                 method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ domain }),
             });
 
             if (!res.ok) throw new Error(await res.text());
@@ -299,13 +305,9 @@ export default function AdminResourcesPage() {
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Domain
                                 </label>
-                                <input
-                                    type="text"
-                                    value={modal.domain}
-                                    onChange={(e) => setModal({ ...modal, domain: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                    placeholder="e.g., example.com"
-                                />
+                                <div className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                                    {domain}
+                                </div>
                             </div>
 
                             <ListEditor

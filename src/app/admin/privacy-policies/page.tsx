@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -60,29 +60,34 @@ export default function AdminPrivacyPoliciesPage() {
         })();
     }, []);
 
-    // 2) Load privacy policies
-    useEffect(() => {
-        if (!domain) return;
-        fetchPrivacyPolicies();
-    }, [domain]);
-
-    async function fetchPrivacyPolicies() {
+    const fetchPrivacyPolicies = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/content/privacy-policies`, {
+            const res = await fetch(`${API_BASE}/content/privacy-policies?domain=${encodeURIComponent(domain)}`, {
                 cache: "no-store",
             });
             if (!res.ok) throw new Error(await res.text());
             const data = await res.json();
             console.log("Fetched privacy policies data: ", data);
-            setItems(Array.isArray(data.data) ? data.data : data.data.items || []);
+            const list = Array.isArray(data.data) ? data.data : data.data.items || [];
+            const mine = (list || []).filter(
+                (item: PrivacyPolicy) =>
+                    String(item?.domain || "").toLowerCase() === domain.toLowerCase()
+            );
+            setItems(mine);
             setErr(null);
         } catch (e: unknown) {
             setErr(e instanceof Error ? e.message : "Failed to load privacy policies.");
         } finally {
             setLoading(false);
         }
-    }
+    }, [domain]);
+
+    // 2) Load privacy policies
+    useEffect(() => {
+        if (!domain) return;
+        fetchPrivacyPolicies();
+    }, [domain, fetchPrivacyPolicies]);
 
 
 
@@ -138,7 +143,7 @@ export default function AdminPrivacyPoliciesPage() {
                 body: JSON.stringify({
                     title: modal.title.trim(),
                     content: modal.content.trim(),
-                    domain: modal.domain,
+                    domain,
                     isActive: true,
                 }),
             });
@@ -158,6 +163,8 @@ export default function AdminPrivacyPoliciesPage() {
         try {
             const res = await fetch(`${API_BASE}/content/privacy-policy/${id}`, {
                 method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ domain }),
             });
 
             if (!res.ok) throw new Error(await res.text());
@@ -272,13 +279,9 @@ export default function AdminPrivacyPoliciesPage() {
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Domain
                                 </label>
-                                <input
-                                    type="text"
-                                    value={modal.domain}
-                                    onChange={(e) => setModal({ ...modal, domain: e.target.value })}
-                                    placeholder="e.g., example.com"
-                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                />
+                                <div className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono">
+                                    {domain}
+                                </div>
                             </div>
 
                             <div>
