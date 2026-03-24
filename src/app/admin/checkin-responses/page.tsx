@@ -2,11 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://clearshiftwellbeingapis-production.up.railway.app";
-
 type CheckInResponse = {
     _id: string;
-    employeeId: string;
     domain: string;
     answers: {
         questionId: string;
@@ -121,7 +118,6 @@ export default function CheckInResponsesPage() {
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
     const [items, setItems] = useState<CheckInResponse[]>([]);
-    const [employeeFilter, setEmployeeFilter] = useState<string>("");
 
     // Get admin domain from session
     useEffect(() => {
@@ -145,12 +141,7 @@ export default function CheckInResponsesPage() {
     const fetchResponses = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({ domain });
-            if (employeeFilter.trim()) {
-                params.append("employeeId", employeeFilter.trim());
-            }
-
-            const res = await fetch(`${API_BASE}/checkin-responses?${params}`, {
+            const res = await fetch("/api/admin/checkin-responses", {
                 cache: "no-store",
             });
 
@@ -164,7 +155,7 @@ export default function CheckInResponsesPage() {
             }
 
             const data = await res.json();
-            setItems(Array.isArray(data) ? data : []);
+            setItems(Array.isArray(data?.items) ? data.items : []);
             setErr(null);
         } catch (e: unknown) {
             console.error(e);
@@ -172,7 +163,7 @@ export default function CheckInResponsesPage() {
         } finally {
             setLoading(false);
         }
-    }, [domain, employeeFilter]);
+    }, [domain]);
 
     // Load responses when domain is available
     useEffect(() => {
@@ -188,28 +179,27 @@ export default function CheckInResponsesPage() {
             <div>
                 <h1 className="text-2xl font-semibold">Check-in Responses</h1>
                 <p className="text-sm text-gray-500">Domain: <span className="font-mono">{domain}</span></p>
+                <p className="text-sm text-gray-500">
+                    Responses are shown anonymously. Personal email identifiers are hidden in this view.
+                </p>
             </div>
 
             {/* Filter Section */}
             <div className="bg-white dark:bg-white/[0.03] rounded-xl border p-4">
-                <div className="flex gap-4 items-end">
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Filter by Employee ID
-                        </label>
-                        <input
-                            type="text"
-                            value={employeeFilter}
-                            onChange={(e) => setEmployeeFilter(e.target.value)}
-                            placeholder="Enter employee ID (optional)"
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        />
+                <div className="flex items-end justify-between gap-4">
+                    <div>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Anonymous review mode
+                        </p>
+                        <p className="text-sm text-gray-500">
+                            Admins can review wellbeing answers without seeing employee emails.
+                        </p>
                     </div>
                     <button
                         onClick={fetchResponses}
                         className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                     >
-                        Search
+                        Refresh
                     </button>
                 </div>
             </div>
@@ -239,7 +229,7 @@ export default function CheckInResponsesPage() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="font-semibold text-gray-800 dark:text-white">
-                                                Employee ID: {response.employeeId}
+                                                Anonymous submission
                                             </span>
                                             <span className="text-xs text-gray-500">
                                                 {new Date(response.submittedAt).toLocaleString()}
