@@ -22,6 +22,11 @@ type NavItem = {
 
 const navItems: NavItem[] = [
     {
+        icon: <ListIcon />,
+        name: "Dashboard",
+        path: "dashboard",
+    },
+    {
         icon: <UserCircleIcon />,
         name: "Question Management",
         subItems: [{ name: "Questions", path: "questions", pro: false }],
@@ -183,8 +188,10 @@ const AdminSidebar: React.FC = () => {
     );
     const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-    // const isActive = (path: string) => path === pathname;
-    const isActive = useCallback((path: string) => path === pathname, [pathname]);
+    const isActive = useCallback((path: string) => {
+        const normalized = path.startsWith("/") ? path : `/admin/${path}`;
+        return pathname === normalized;
+    }, [pathname]);
 
 
     useEffect(() => {
