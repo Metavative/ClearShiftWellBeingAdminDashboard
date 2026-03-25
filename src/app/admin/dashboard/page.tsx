@@ -78,6 +78,14 @@ export default function AdminDashboardPage() {
     };
   }, [currentWeek]);
 
+  const reportWeeks = useMemo(
+    () =>
+      [currentWeek, ...recentWeeks].filter(
+        (week) => Boolean(week.label) || week.total > 0 || week.themes.length > 0,
+      ),
+    [currentWeek, recentWeeks],
+  );
+
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -127,6 +135,38 @@ export default function AdminDashboardPage() {
         <MetricCard label="Red" value={currentWeek.red} hint={`${percentages.red}%`} tone="red" />
         <MetricCard label="Amber" value={currentWeek.amber} hint={`${percentages.amber}%`} tone="amber" />
         <MetricCard label="Green" value={currentWeek.green} hint={`${percentages.green}%`} tone="green" />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-gray-900">RAG trend graph</h2>
+            <p className="text-sm text-gray-500">
+              Visual weekly comparison of Red, Amber, and Green outcomes across recent report periods.
+            </p>
+          </div>
+          <RagTrendChart weeks={reportWeeks} />
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-gray-900">Theme summary chart</h2>
+            <p className="text-sm text-gray-500">
+              Top themes are shown as weighted bars so employers can instantly see the strongest concern areas.
+            </p>
+          </div>
+          <ThemeBars themes={currentWeek.themes} />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-gray-900">Check-in volume graph</h2>
+          <p className="text-sm text-gray-500">
+            This chart shows how total anonymous check-ins move across recent weekly reporting periods.
+          </p>
+        </div>
+        <SubmissionTrendChart weeks={reportWeeks} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
@@ -402,6 +442,170 @@ function MiniMetric({ label, value }: { label: string; value: number }) {
     <div className="rounded-xl bg-white px-2 py-3">
       <p className="text-xs text-gray-500">{label}</p>
       <p className="mt-1 text-lg font-semibold text-gray-900">{value}</p>
+    </div>
+  );
+}
+
+function RagTrendChart({ weeks }: { weeks: SummaryBucket[] }) {
+  if (!weeks.length) {
+    return <EmptyChartState text="Weekly RAG charts will appear once report periods contain check-in data." />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+        <LegendChip label="Red" color="bg-rose-500" />
+        <LegendChip label="Amber" color="bg-amber-400" />
+        <LegendChip label="Green" color="bg-emerald-500" />
+      </div>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {weeks.map((week, index) => {
+          const total = week.total || 0;
+          const redHeight = total ? (week.red / total) * 100 : 0;
+          const amberHeight = total ? (week.amber / total) * 100 : 0;
+          const greenHeight = total ? (week.green / total) * 100 : 0;
+
+          return (
+            <div key={`${week.label}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex h-48 items-end justify-center gap-0 overflow-hidden rounded-xl bg-white p-4">
+                <div className="flex h-full w-16 flex-col justify-end overflow-hidden rounded-full bg-gray-100">
+                  <div className="bg-rose-500" style={{ height: `${redHeight}%` }} />
+                  <div className="bg-amber-400" style={{ height: `${amberHeight}%` }} />
+                  <div className="bg-emerald-500" style={{ height: `${greenHeight}%` }} />
+                </div>
+              </div>
+              <p className="mt-3 text-sm font-semibold text-gray-900">{week.label || `Week ${index + 1}`}</p>
+              <p className="mt-1 text-xs text-gray-500">Total submissions: {week.total}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SubmissionTrendChart({ weeks }: { weeks: SummaryBucket[] }) {
+  if (!weeks.length) {
+    return <EmptyChartState text="Check-in volume graph will appear once weekly data is available." />;
+  }
+
+  const safeWeeks = [...weeks].reverse();
+  const width = 640;
+  const height = 220;
+  const padding = 28;
+  const maxValue = Math.max(...safeWeeks.map((week) => week.total), 1);
+  const stepX =
+    safeWeeks.length > 1 ? (width - padding * 2) / (safeWeeks.length - 1) : 0;
+
+  const points = safeWeeks.map((week, index) => {
+    const x = padding + index * stepX;
+    const y = height - padding - (week.total / maxValue) * (height - padding * 2);
+    return { x, y, total: week.total, label: week.label || `Week ${index + 1}` };
+  });
+
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ");
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
+
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto">
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-[240px] w-full min-w-[640px]">
+          <defs>
+            <linearGradient id="volumeFill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          {[0, 1, 2, 3].map((tick) => {
+            const y = padding + ((height - padding * 2) / 3) * tick;
+            return (
+              <line
+                key={tick}
+                x1={padding}
+                x2={width - padding}
+                y1={y}
+                y2={y}
+                stroke="#e5e7eb"
+                strokeDasharray="4 4"
+              />
+            );
+          })}
+          <path d={areaPath} fill="url(#volumeFill)" />
+          <path d={linePath} fill="none" stroke="#4f46e5" strokeWidth="3" strokeLinecap="round" />
+          {points.map((point, index) => (
+            <g key={`${point.label}-${index}`}>
+              <circle cx={point.x} cy={point.y} r="5" fill="#4f46e5" />
+              <text
+                x={point.x}
+                y={height - 8}
+                textAnchor="middle"
+                fontSize="11"
+                fill="#6b7280"
+              >
+                {point.label}
+              </text>
+              <text
+                x={point.x}
+                y={point.y - 10}
+                textAnchor="middle"
+                fontSize="11"
+                fill="#111827"
+              >
+                {point.total}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function ThemeBars({ themes }: { themes: ThemeItem[] }) {
+  if (!themes.length) {
+    return <EmptyChartState text="Theme bars will appear once repeated concern patterns are detected." />;
+  }
+
+  const maxCount = Math.max(...themes.map((theme) => theme.count), 1);
+
+  return (
+    <div className="space-y-4">
+      {themes.map((theme, index) => {
+        const width = Math.max((theme.count / maxCount) * 100, 14);
+        const color =
+          index === 0 ? "bg-indigo-600" : index === 1 ? "bg-sky-500" : "bg-emerald-500";
+
+        return (
+          <div key={`${theme.topic}-${index}`} className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-gray-800">{theme.topic}</span>
+              <span className="text-gray-500">{theme.count}</span>
+            </div>
+            <div className="h-3 rounded-full bg-gray-100">
+              <div className={`h-3 rounded-full ${color}`} style={{ width: `${width}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LegendChip({ label, color }: { label: string; color: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
+      {label}
+    </span>
+  );
+}
+
+function EmptyChartState({ text }: { text: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-sm text-gray-500">
+      {text}
     </div>
   );
 }
